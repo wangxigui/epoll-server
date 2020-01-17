@@ -12,17 +12,19 @@ PORT = 9000
 def connect(name):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.connect((HOST, PORT))
-    s.sendall('Hello, world')
+    s.sendall('%s: Hello, world'%name)
     data = s.recv(1024)
-    print name, ' Received', repr(data)
-    #s.close()
+    res = ' Received: '+ repr(data)
+    print res
+    #print name, ' Received', repr(data)
+    s.close()
     time.sleep(15)
 
 
 for i in range(50):
     if i % 10 == 0:
         time.sleep(5)
-    name = 's_%s'%str(i)
+    name = 'cli_%s'%str(i)
     w = threading.Thread(target=connect, args=(name, ))
     w.start()
 

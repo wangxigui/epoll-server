@@ -20,7 +20,7 @@ static int socket_bind(const char* ip, int port);
 static void do_epoll(int listenfd);
 static void handle_events(int epollfd, struct epoll_event *events,
                           int num, int listenfd, char *buf);
-static void handle_accpet(int epollfd, int listenfd);
+static void handle_accpet(int epollfd, int listenfd, char *buf);
 static void do_read(int epollfd, int fd, char *buf);
 static void do_write(int epollfd, int fd, char *buf);
 static void add_event(int epollfd, int fd, int state);
@@ -63,8 +63,8 @@ static void do_epoll(int listenfd) {
     int ready_cnt;
     char buf[MAXSIZE];
     memset(buf, 0, MAXSIZE);
-    printf(" ---- start epoll_create ---- \n");
     epollfd = epoll_create(FDSIZE);
+    printf(" ---- start epoll_create, epollfd:%d ---- \n", epollfd);
     add_event(epollfd, listenfd, EPOLLIN);
     for ( ; ; ) {
         ready_cnt = epoll_wait(epollfd, events, EPOLLEVENTS, -1);
@@ -84,14 +84,14 @@ handle_events(int epollfd, struct epoll_event *events, int num,
         // If fd is a listen fd, we do accept(), otherwise it is a
         // connected fd, we should read buf if EPOLLIN occured.
         if ((fd == listenfd) && (events[i].events & EPOLLIN))
-            handle_accpet(epollfd, listenfd);
+            handle_accpet(epollfd, listenfd, buf);
         else if (events[i].events & EPOLLIN)
             do_read(epollfd, fd, buf);
         else if (events[i].events & EPOLLOUT)
             do_write(epollfd, fd, buf);
     }
 }
-static void handle_accpet(int epollfd,int listenfd) {
+static void handle_accpet(int epollfd,int listenfd, char *buf) {
     int clifd;
     struct sockaddr_in cliaddr;
     socklen_t  cliaddrlen;
@@ -100,7 +100,7 @@ static void handle_accpet(int epollfd,int listenfd) {
     if (clifd == -1)
         perror("Accpet error:");
     else {
-        printf("Accept a new client: %s:%d\n",
+        sprintf(buf, "Accept a new client: %s:%d\n",
                inet_ntoa(cliaddr.sin_addr), cliaddr.sin_port);
         add_event(epollfd, clifd, EPOLLIN);
     }
